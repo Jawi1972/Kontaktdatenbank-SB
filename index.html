@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kundenverwaltung</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f0d;
+    --surface: #1a1a16;
+    --surface2: #242420;
+    --border: #2e2e28;
+    --accent: #c8a96e;
+    --accent-dim: #8a7248;
+    --text: #e8e4d9;
+    --text-dim: #7a7668;
+    --text-muted: #4a4840;
+    --danger: #c0614a;
+    --success: #6a9e6a;
+    --tag-bg: #2a2a22;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+  }
+
+  /* ── Layout ── */
+  .app { display: flex; flex-direction: column; min-height: 100vh; }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+    background: var(--bg);
+  }
+
+  .logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.5rem;
+    letter-spacing: -0.02em;
+    color: var(--accent);
+  }
+  .logo span { color: var(--text-dim); font-style: italic; }
+
+  .header-stats {
+    display: flex; gap: 32px;
+  }
+  .stat { text-align: right; }
+  .stat-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 1.4rem;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .stat-label { font-size: 0.7rem; color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px; }
+
+  .main { display: flex; flex: 1; }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 260px;
+    min-height: calc(100vh - 65px);
+    border-right: 1px solid var(--border);
+    padding: 24px 0;
+    position: sticky; top: 65px; height: calc(100vh - 65px);
+    overflow-y: auto;
+  }
+
+  .nav-section { margin-bottom: 32px; }
+  .nav-label {
+    font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--text-muted); padding: 0 24px; margin-bottom: 8px;
+  }
+
+  .nav-btn {
+    display: flex; align-items: center; gap: 10px;
+    width: 100%; padding: 10px 24px;
+    background: none; border: none; color: var(--text-dim);
+    font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 300;
+    cursor: pointer; text-align: left;
+    transition: all 0.15s;
+    border-left: 2px solid transparent;
+  }
+  .nav-btn:hover { color: var(--text); background: var(--surface); }
+  .nav-btn.active { color: var(--accent); border-left-color: var(--accent); background: var(--surface); }
+  .nav-btn .icon { font-size: 1rem; width: 20px; text-align: center; }
+  .nav-count {
+    margin-left: auto;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    background: var(--surface2);
+    color: var(--text-muted);
+    padding: 2px 6px;
+    border-radius: 10px;
+  }
+
+  /* ── Content ── */
+  .content { flex: 1; padding: 32px 40px; }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  .page-header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    margin-bottom: 28px;
+  }
+  .page-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2rem;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .page-sub { color: var(--text-dim); font-size: 0.85rem; margin-top: 6px; }
+
+  /* ── Buttons ── */
+  .btn {
+    padding: 9px 20px;
+    border: none; border-radius: 6px;
+    font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 500;
+    cursor: pointer; transition: all 0.15s;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn-primary { background: var(--accent); color: var(--bg); }
+  .btn-primary:hover { background: #d4b87a; }
+  .btn-ghost {
+    background: var(--surface); color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { color: var(--text); border-color: var(--text-dim); }
+  .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+  .btn-danger:hover { background: var(--danger); color: #fff; }
+  .btn-sm { padding: 5px 12px; font-size: 0.8rem; }
+
+  /* ── Search / Filter bar ── */
+  .toolbar {
+    display: flex; gap: 12px; margin-bottom: 24px;
+    align-items: center;
+  }
+  .search-wrap { position: relative; flex: 1; }
+  .search-wrap input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 12px 9px 36px;
+    border-radius: 6px;
+    font-family: 'DM Sans', sans-serif; font-size: 0.9rem;
+    transition: border-color 0.15s;
+  }
+  .search-wrap input:focus { outline: none; border-color: var(--accent-dim); }
+  .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.85rem; }
+
+  select.filter {
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text-dim); padding: 9px 12px; border-radius: 6px;
+    font-family: 'DM Sans', sans-serif; font-size: 0.85rem; cursor: pointer;
+  }
+  select.filter:focus { outline: none; }
+
+  /* ── Table ── */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    text-align: left; padding: 10px 16px;
+    font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--text-muted); font-weight: 500;
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+    cursor: pointer;
+  }
+  tbody tr:hover { background: var(--surface); }
+  tbody td { padding: 14px 16px; font-size: 0.9rem; }
+
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 0.72rem; font-weight: 500; letter-spacing: 0.03em;
+  }
+  .badge-lead { background: #2a3522; color: #8fbe6a; }
+  .badge-aktiv { background: #1e2e1e; color: var(--success); }
+  .badge-inaktiv { background: #2a2020; color: #a06060; }
+  .badge-vip { background: #2e2a1a; color: var(--accent); }
+
+  .actions { display: flex; gap: 8px; }
+
+  /* ── Cards (Dashboard) ── */
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+  }
+  .card-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 2rem;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .card-label { font-size: 0.78rem; color: var(--text-dim); margin-top: 6px; }
+
+  /* ── Modal ── */
+  .overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7); z-index: 200;
+    align-items: center; justify-content: center;
+  }
+  .overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    width: 560px; max-width: 95vw;
+    max-height: 90vh; overflow-y: auto;
+    padding: 32px;
+    animation: slideUp 0.2s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .modal-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.5rem;
+    margin-bottom: 24px;
+  }
+
+  /* ── Form ── */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: 0.75rem; color: var(--text-dim); letter-spacing: 0.05em; text-transform: uppercase; }
+  input, textarea, select {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); padding: 9px 12px; border-radius: 6px;
+    font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 300;
+    transition: border-color 0.15s;
+  }
+  input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent-dim); }
+  textarea { resize: vertical; min-height: 80px; }
+
+  .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+
+  /* ── Detail Panel ── */
+  .detail-modal { width: 700px; }
+  .detail-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; }
+  .detail-name { font-family: 'DM Serif Display', serif; font-size: 1.8rem; line-height: 1.1; }
+  .detail-email { color: var(--accent); font-size: 0.9rem; margin-top: 4px; }
+
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .detail-field label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+  .detail-field p { font-size: 0.9rem; margin-top: 3px; }
+
+  .section-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── Notes ── */
+  .notes-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+  .note-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+  }
+  .note-text { font-size: 0.9rem; margin-bottom: 6px; }
+  .note-meta { font-size: 0.75rem; color: var(--text-muted); font-family: 'DM Mono', monospace; }
+  .note-input-row { display: flex; gap: 8px; }
+  .note-input-row input { flex: 1; }
+
+  /* ── Invoices ── */
+  .invoice-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+  .invoice-item {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .invoice-num { font-family: 'DM Mono', monospace; font-size: 0.8rem; color: var(--text-muted); }
+  .invoice-title { font-size: 0.9rem; }
+  .invoice-amount { font-family: 'DM Mono', monospace; font-size: 1rem; color: var(--accent); }
+  .badge-paid { background: #1e2e1e; color: var(--success); }
+  .badge-offen { background: #2e2a1a; color: var(--accent); }
+  .badge-ueberfaellig { background: #2a1e1e; color: var(--danger); }
+
+  /* ── Rechnung Modal ── */
+  .invoice-modal { width: 500px; }
+
+  /* ── Empty state ── */
+  .empty {
+    text-align: center; padding: 60px 20px;
+    color: var(--text-muted);
+  }
+  .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+  .empty p { font-size: 0.9rem; }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); padding: 12px 20px;
+    border-radius: 8px; font-size: 0.85rem;
+    transform: translateY(60px); opacity: 0;
+    transition: all 0.25s;
+    z-index: 999;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { border-color: var(--success); }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    header { padding: 16px 20px; }
+    .sidebar { display: none; }
+    .content { padding: 20px; }
+    .header-stats { display: none; }
+    .form-grid { grid-template-columns: 1fr; }
+    .detail-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">Kunden<span>verwaltung</span></div>
+    <div class="header-stats">
+      <div class="stat">
+        <div class="stat-num" id="hdr-total">0</div>
+        <div class="stat-label">Kunden</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="hdr-aktiv">0</div>
+        <div class="stat-label">Aktiv</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="hdr-revenue">0</div>
+        <div class="stat-label">€ Offen</div>
+      </div>
+    </div>
+  </header>
+
+  <div class="main">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <div class="nav-section">
+        <div class="nav-label">Navigation</div>
+        <button class="nav-btn active" onclick="showPage('dashboard')">
+          <span class="icon">◈</span> Dashboard
+        </button>
+        <button class="nav-btn" onclick="showPage('kunden')">
+          <span class="icon">◉</span> Kunden
+          <span class="nav-count" id="nav-kunden-count">0</span>
+        </button>
+        <button class="nav-btn" onclick="showPage('rechnungen')">
+          <span class="icon">◎</span> Rechnungen
+          <span class="nav-count" id="nav-inv-count">0</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Pages -->
+    <div class="content">
+
+      <!-- Dashboard -->
+      <div id="page-dashboard" class="page active">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Dashboard</div>
+            <div class="page-sub">Übersicht aller Aktivitäten</div>
+          </div>
+        </div>
+        <div class="cards" id="dashboard-cards"></div>
+        <div class="section-title">Zuletzt hinzugefügt</div>
+        <div id="recent-customers"></div>
+      </div>
+
+      <!-- Kunden -->
+      <div id="page-kunden" class="page">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Kunden</div>
+            <div class="page-sub" id="kunden-count-label">0 Einträge</div>
+          </div>
+          <button class="btn btn-primary" onclick="openKundeModal()">+ Neuer Kunde</button>
+        </div>
+        <div class="toolbar">
+          <div class="search-wrap">
+            <span class="search-icon">⌕</span>
+            <input type="text" id="search-input" placeholder="Suchen nach Name, E-Mail, Firma…" oninput="renderKunden()">
+          </div>
+          <select class="filter" id="filter-status" onchange="renderKunden()">
+            <option value="">Alle Status</option>
+            <option value="Aktiv">Aktiv</option>
+            <option value="Inaktiv">Inaktiv</option>
+            <option value="Lead">Lead</option>
+            <option value="VIP">VIP</option>
+          </select>
+          <select class="filter" id="sort-by" onchange="renderKunden()">
+            <option value="name">Name A–Z</option>
+            <option value="date">Neueste zuerst</option>
+            <option value="firma">Firma</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Firma</th>
+                <th>E-Mail</th>
+                <th>Telefon</th>
+                <th>Status</th>
+                <th>Aktionen</th>
+              </tr>
+            </thead>
+            <tbody id="kunden-tbody"></tbody>
+          </table>
+        </div>
+        <div id="kunden-empty" class="empty" style="display:none">
+          <div class="empty-icon">◌</div>
+          <p>Keine Kunden gefunden</p>
+        </div>
+      </div>
+
+      <!-- Rechnungen -->
+      <div id="page-rechnungen" class="page">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Rechnungen</div>
+            <div class="page-sub" id="inv-count-label">0 Rechnungen</div>
+          </div>
+          <button class="btn btn-primary" onclick="openInvoiceModal()">+ Neue Rechnung</button>
+        </div>
+        <div class="toolbar">
+          <div class="search-wrap">
+            <span class="search-icon">⌕</span>
+            <input type="text" id="inv-search" placeholder="Suchen…" oninput="renderInvoices()">
+          </div>
+          <select class="filter" id="inv-filter" onchange="renderInvoices()">
+            <option value="">Alle</option>
+            <option value="Offen">Offen</option>
+            <option value="Bezahlt">Bezahlt</option>
+            <option value="Überfällig">Überfällig</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Nr.</th>
+                <th>Kunde</th>
+                <th>Beschreibung</th>
+                <th>Betrag</th>
+                <th>Fällig am</th>
+                <th>Status</th>
+                <th>Aktionen</th>
+              </tr>
+            </thead>
+            <tbody id="invoices-tbody"></tbody>
+          </table>
+        </div>
+        <div id="inv-empty" class="empty" style="display:none">
+          <div class="empty-icon">◌</div>
+          <p>Keine Rechnungen gefunden</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ── Kunde Modal ── -->
+<div class="overlay" id="kunde-overlay" onclick="closeIfOverlay(event,'kunde-overlay')">
+  <div class="modal">
+    <div class="modal-title" id="kunde-modal-title">Neuer Kunde</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Vorname *</label>
+        <input type="text" id="k-vorname" placeholder="Max">
+      </div>
+      <div class="form-group">
+        <label>Nachname *</label>
+        <input type="text" id="k-nachname" placeholder="Mustermann">
+      </div>
+      <div class="form-group">
+        <label>Firma</label>
+        <input type="text" id="k-firma" placeholder="Mustermann GmbH">
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="k-status">
+          <option>Aktiv</option>
+          <option>Lead</option>
+          <option>VIP</option>
+          <option>Inaktiv</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>E-Mail</label>
+        <input type="email" id="k-email" placeholder="max@beispiel.de">
+      </div>
+      <div class="form-group">
+        <label>Telefon</label>
+        <input type="text" id="k-tel" placeholder="+49 711 …">
+      </div>
+      <div class="form-group full">
+        <label>Adresse</label>
+        <input type="text" id="k-adresse" placeholder="Musterstraße 1, 70173 Stuttgart">
+      </div>
+      <div class="form-group full">
+        <label>Notiz</label>
+        <textarea id="k-notiz" placeholder="Interne Anmerkungen…"></textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('kunde-overlay')">Abbrechen</button>
+      <button class="btn btn-primary" onclick="saveKunde()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Detail Modal ── -->
+<div class="overlay" id="detail-overlay" onclick="closeIfOverlay(event,'detail-overlay')">
+  <div class="modal detail-modal" id="detail-content"></div>
+</div>
+
+<!-- ── Invoice Modal ── -->
+<div class="overlay" id="invoice-overlay" onclick="closeIfOverlay(event,'invoice-overlay')">
+  <div class="modal invoice-modal">
+    <div class="modal-title" id="inv-modal-title">Neue Rechnung</div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>Kunde *</label>
+        <select id="inv-kunde"></select>
+      </div>
+      <div class="form-group full">
+        <label>Beschreibung *</label>
+        <input type="text" id="inv-desc" placeholder="z.B. Webentwicklung März 2025">
+      </div>
+      <div class="form-group">
+        <label>Betrag (€) *</label>
+        <input type="number" id="inv-amount" placeholder="0.00" min="0" step="0.01">
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="inv-status">
+          <option>Offen</option>
+          <option>Bezahlt</option>
+          <option>Überfällig</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Fällig am</label>
+        <input type="date" id="inv-due">
+      </div>
+      <div class="form-group">
+        <label>Rechnungsdatum</label>
+        <input type="date" id="inv-date">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('invoice-overlay')">Abbrechen</button>
+      <button class="btn btn-primary" onclick="saveInvoice()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Storage ──
+const DB = {
+  get: (k) => JSON.parse(localStorage.getItem(k) || '[]'),
+  set: (k, v) => localStorage.setItem(k, JSON.stringify(v)),
+};
+
+let kunden = DB.get('kunden');
+let invoices = DB.get('invoices');
+let editingKundeId = null;
+let editingInvId = null;
+
+// ── Helpers ──
+const uid = () => Math.random().toString(36).slice(2, 10);
+const now = () => new Date().toISOString();
+const fmtDate = (s) => s ? new Date(s).toLocaleDateString('de-DE') : '–';
+const fmtEur = (n) => Number(n).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + type;
+  setTimeout(() => el.className = 'toast', 2400);
+}
+
+function statusBadge(s) {
+  const map = { Aktiv: 'aktiv', Inaktiv: 'inaktiv', Lead: 'lead', VIP: 'vip' };
+  return `<span class="badge badge-${map[s] || 'aktiv'}">${s}</span>`;
+}
+
+function invBadge(s) {
+  const map = { Bezahlt: 'paid', Offen: 'offen', 'Überfällig': 'ueberfaellig' };
+  return `<span class="badge badge-${map[s] || 'offen'}">${s}</span>`;
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+function closeIfOverlay(e, id) {
+  if (e.target.id === id) closeModal(id);
+}
+
+// ── Navigation ──
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if (name === 'dashboard') renderDashboard();
+  if (name === 'kunden') renderKunden();
+  if (name === 'rechnungen') renderInvoices();
+}
+
+// ── Update Header / Nav counts ──
+function updateCounts() {
+  document.getElementById('hdr-total').textContent = kunden.length;
+  document.getElementById('hdr-aktiv').textContent = kunden.filter(k => k.status === 'Aktiv' || k.status === 'VIP').length;
+  const open = invoices.filter(i => i.status === 'Offen' || i.status === 'Überfällig').reduce((s, i) => s + Number(i.amount), 0);
+  document.getElementById('hdr-revenue').textContent = open.toLocaleString('de-DE');
+  document.getElementById('nav-kunden-count').textContent = kunden.length;
+  document.getElementById('nav-inv-count').textContent = invoices.length;
+}
+
+// ── Dashboard ──
+function renderDashboard() {
+  const aktiv = kunden.filter(k => k.status === 'Aktiv').length;
+  const vip = kunden.filter(k => k.status === 'VIP').length;
+  const offen = invoices.filter(i => i.status === 'Offen').reduce((s, i) => s + Number(i.amount), 0);
+  const bezahlt = invoices.filter(i => i.status === 'Bezahlt').reduce((s, i) => s + Number(i.amount), 0);
+
+  document.getElementById('dashboard-cards').innerHTML = `
+    <div class="card"><div class="card-num">${kunden.length}</div><div class="card-label">Kunden gesamt</div></div>
+    <div class="card"><div class="card-num">${aktiv}</div><div class="card-label">Aktive Kunden</div></div>
+    <div class="card"><div class="card-num">${vip}</div><div class="card-label">VIP Kunden</div></div>
+    <div class="card"><div class="card-num">${invoices.length}</div><div class="card-label">Rechnungen</div></div>
+    <div class="card"><div class="card-num">${offen.toLocaleString('de-DE')} €</div><div class="card-label">Offen</div></div>
+    <div class="card"><div class="card-num">${bezahlt.toLocaleString('de-DE')} €</div><div class="card-label">Bezahlt</div></div>
+  `;
+
+  const recent = [...kunden].sort((a, b) => b.created.localeCompare(a.created)).slice(0, 5);
+  if (!recent.length) {
+    document.getElementById('recent-customers').innerHTML = '<div class="empty"><div class="empty-icon">◌</div><p>Noch keine Kunden angelegt</p></div>';
+    return;
+  }
+  document.getElementById('recent-customers').innerHTML = `
+    <table><thead><tr><th>Name</th><th>Firma</th><th>Status</th><th>Erstellt</th></tr></thead>
+    <tbody>${recent.map(k => `
+      <tr onclick="openDetail('${k.id}')">
+        <td>${k.vorname} ${k.nachname}</td>
+        <td>${k.firma || '–'}</td>
+        <td>${statusBadge(k.status)}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:0.8rem;color:var(--text-muted)">${fmtDate(k.created)}</td>
+      </tr>`).join('')}
+    </tbody></table>`;
+}
+
+// ── Kunden ──
+function renderKunden() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const status = document.getElementById('filter-status').value;
+  const sort = document.getElementById('sort-by').value;
+
+  let list = kunden.filter(k => {
+    const match = `${k.vorname} ${k.nachname} ${k.email} ${k.firma}`.toLowerCase().includes(q);
+    const st = !status || k.status === status;
+    return match && st;
+  });
+
+  if (sort === 'name') list.sort((a, b) => a.nachname.localeCompare(b.nachname));
+  else if (sort === 'date') list.sort((a, b) => b.created.localeCompare(a.created));
+  else if (sort === 'firma') list.sort((a, b) => (a.firma || '').localeCompare(b.firma || ''));
+
+  document.getElementById('kunden-count-label').textContent = `${list.length} Einträge`;
+
+  const tbody = document.getElementById('kunden-tbody');
+  tbody.innerHTML = list.map(k => `
+    <tr onclick="openDetail('${k.id}')">
+      <td><strong>${k.vorname} ${k.nachname}</strong></td>
+      <td>${k.firma || '–'}</td>
+      <td>${k.email || '–'}</td>
+      <td>${k.tel || '–'}</td>
+      <td>${statusBadge(k.status)}</td>
+      <td onclick="event.stopPropagation()">
+        <div class="actions">
+          <button class="btn btn-ghost btn-sm" onclick="openKundeModal('${k.id}')">Bearbeiten</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteKunde('${k.id}')">Löschen</button>
+        </div>
+      </td>
+    </tr>`).join('');
+
+  document.getElementById('kunden-empty').style.display = list.length ? 'none' : 'block';
+  document.getElementById('kunden-tbody').style.display = list.length ? '' : 'none';
+  updateCounts();
+}
+
+function openKundeModal(id = null) {
+  editingKundeId = id;
+  document.getElementById('kunde-modal-title').textContent = id ? 'Kunde bearbeiten' : 'Neuer Kunde';
+  if (id) {
+    const k = kunden.find(x => x.id === id);
+    document.getElementById('k-vorname').value = k.vorname;
+    document.getElementById('k-nachname').value = k.nachname;
+    document.getElementById('k-firma').value = k.firma || '';
+    document.getElementById('k-status').value = k.status;
+    document.getElementById('k-email').value = k.email || '';
+    document.getElementById('k-tel').value = k.tel || '';
+    document.getElementById('k-adresse').value = k.adresse || '';
+    document.getElementById('k-notiz').value = '';
+  } else {
+    ['k-vorname','k-nachname','k-firma','k-email','k-tel','k-adresse','k-notiz'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('k-status').value = 'Aktiv';
+  }
+  document.getElementById('kunde-overlay').classList.add('open');
+}
+
+function saveKunde() {
+  const vorname = document.getElementById('k-vorname').value.trim();
+  const nachname = document.getElementById('k-nachname').value.trim();
+  if (!vorname || !nachname) { toast('Vorname und Nachname sind Pflichtfelder'); return; }
+
+  if (editingKundeId) {
+    const k = kunden.find(x => x.id === editingKundeId);
+    Object.assign(k, {
+      vorname, nachname,
+      firma: document.getElementById('k-firma').value.trim(),
+      status: document.getElementById('k-status').value,
+      email: document.getElementById('k-email').value.trim(),
+      tel: document.getElementById('k-tel').value.trim(),
+      adresse: document.getElementById('k-adresse').value.trim(),
+    });
+    const n = document.getElementById('k-notiz').value.trim();
+    if (n) k.notes = [...(k.notes || []), { text: n, date: now() }];
+    toast('Gespeichert', 'success');
+  } else {
+    const n = document.getElementById('k-notiz').value.trim();
+    kunden.push({
+      id: uid(), created: now(), vorname, nachname,
+      firma: document.getElementById('k-firma').value.trim(),
+      status: document.getElementById('k-status').value,
+      email: document.getElementById('k-email').value.trim(),
+      tel: document.getElementById('k-tel').value.trim(),
+      adresse: document.getElementById('k-adresse').value.trim(),
+      notes: n ? [{ text: n, date: now() }] : [],
+    });
+    toast('Kunde angelegt', 'success');
+  }
+  DB.set('kunden', kunden);
+  closeModal('kunde-overlay');
+  renderKunden();
+}
+
+function deleteKunde(id) {
+  if (!confirm('Kunden wirklich löschen?')) return;
+  kunden = kunden.filter(k => k.id !== id);
+  DB.set('kunden', kunden);
+  renderKunden();
+  toast('Gelöscht');
+}
+
+// ── Detail ──
+function openDetail(id) {
+  const k = kunden.find(x => x.id === id);
+  const kundeInv = invoices.filter(i => i.kundeId === id);
+
+  const notesHtml = (k.notes || []).length
+    ? (k.notes || []).map(n => `
+        <div class="note-item">
+          <div class="note-text">${n.text}</div>
+          <div class="note-meta">${fmtDate(n.date)}</div>
+        </div>`).join('')
+    : '<div style="color:var(--text-muted);font-size:0.85rem">Noch keine Notizen</div>';
+
+  const invHtml = kundeInv.length
+    ? kundeInv.map(i => `
+        <div class="invoice-item">
+          <div>
+            <div class="invoice-num">#${i.num}</div>
+            <div class="invoice-title">${i.desc}</div>
+          </div>
+          <div style="text-align:right">
+            <div class="invoice-amount">${fmtEur(i.amount)}</div>
+            <div>${invBadge(i.status)}</div>
+          </div>
+        </div>`).join('')
+    : '<div style="color:var(--text-muted);font-size:0.85rem">Keine Rechnungen</div>';
+
+  document.getElementById('detail-content').innerHTML = `
+    <div class="detail-header">
+      <div>
+        <div class="detail-name">${k.vorname} ${k.nachname}</div>
+        <div class="detail-email">${k.email || ''}</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:flex-start">
+        ${statusBadge(k.status)}
+        <button class="btn btn-ghost btn-sm" onclick="closeModal('detail-overlay')">✕</button>
+      </div>
+    </div>
+    <div class="detail-grid">
+      <div class="detail-field"><label>Firma</label><p>${k.firma || '–'}</p></div>
+      <div class="detail-field"><label>Telefon</label><p>${k.tel || '–'}</p></div>
+      <div class="detail-field"><label>Adresse</label><p>${k.adresse || '–'}</p></div>
+      <div class="detail-field"><label>Erstellt am</label><p>${fmtDate(k.created)}</p></div>
+    </div>
+
+    <div class="section-title">Notizen</div>
+    <div class="notes-list">${notesHtml}</div>
+    <div class="note-input-row">
+      <input type="text" id="note-input-${k.id}" placeholder="Neue Notiz hinzufügen…" onkeydown="if(event.key==='Enter') addNote('${k.id}')">
+      <button class="btn btn-ghost btn-sm" onclick="addNote('${k.id}')">+ Notiz</button>
+    </div>
+
+    <div class="section-title" style="margin-top:24px">Rechnungen</div>
+    <div class="invoice-list">${invHtml}</div>
+    <button class="btn btn-ghost btn-sm" onclick="closeModal('detail-overlay');showPage2('rechnungen');openInvoiceModal('${k.id}')">+ Rechnung erstellen</button>
+  `;
+  document.getElementById('detail-overlay').classList.add('open');
+}
+
+function addNote(kundeId) {
+  const inp = document.getElementById(`note-input-${kundeId}`);
+  const text = inp.value.trim();
+  if (!text) return;
+  const k = kunden.find(x => x.id === kundeId);
+  k.notes = [...(k.notes || []), { text, date: now() }];
+  DB.set('kunden', kunden);
+  inp.value = '';
+  openDetail(kundeId);
+  toast('Notiz gespeichert', 'success');
+}
+
+// ── Invoices ──
+let invCounter = DB.get('invCounter')[0] || 1000;
+
+function nextInvNum() {
+  invCounter++;
+  DB.set('invCounter', [invCounter]);
+  return invCounter;
+}
+
+function renderInvoices() {
+  const q = document.getElementById('inv-search').value.toLowerCase();
+  const status = document.getElementById('inv-filter').value;
+
+  let list = invoices.filter(i => {
+    const k = kunden.find(x => x.id === i.kundeId);
+    const name = k ? `${k.vorname} ${k.nachname}` : '';
+    const match = `${name} ${i.desc} ${i.num}`.toLowerCase().includes(q);
+    const st = !status || i.status === status;
+    return match && st;
+  });
+
+  list.sort((a, b) => b.created.localeCompare(a.created));
+  document.getElementById('inv-count-label').textContent = `${list.length} Rechnungen`;
+
+  const tbody = document.getElementById('invoices-tbody');
+  tbody.innerHTML = list.map(i => {
+    const k = kunden.find(x => x.id === i.kundeId);
+    const name = k ? `${k.vorname} ${k.nachname}` : 'Unbekannt';
+    return `<tr>
+      <td style="font-family:'DM Mono',monospace;font-size:0.8rem">#${i.num}</td>
+      <td>${name}</td>
+      <td>${i.desc}</td>
+      <td style="font-family:'DM Mono',monospace;color:var(--accent)">${fmtEur(i.amount)}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:0.8rem">${fmtDate(i.due)}</td>
+      <td>${invBadge(i.status)}</td>
+      <td onclick="event.stopPropagation()">
+        <div class="actions">
+          <select class="filter" style="padding:4px 8px;font-size:0.78rem" onchange="changeInvStatus('${i.id}',this.value)">
+            <option ${i.status==='Offen'?'selected':''}>Offen</option>
+            <option ${i.status==='Bezahlt'?'selected':''}>Bezahlt</option>
+            <option ${i.status==='Überfällig'?'selected':''}>Überfällig</option>
+          </select>
+          <button class="btn btn-danger btn-sm" onclick="deleteInvoice('${i.id}')">Löschen</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('inv-empty').style.display = list.length ? 'none' : 'block';
+  document.getElementById('invoices-tbody').style.display = list.length ? '' : 'none';
+  updateCounts();
+}
+
+function openInvoiceModal(preKundeId = null) {
+  editingInvId = null;
+  // fill Kunden select
+  const sel = document.getElementById('inv-kunde');
+  sel.innerHTML = kunden.map(k => `<option value="${k.id}" ${k.id===preKundeId?'selected':''}>${k.vorname} ${k.nachname}${k.firma?' – '+k.firma:''}</option>`).join('');
+  if (!kunden.length) { toast('Bitte zuerst einen Kunden anlegen'); return; }
+  document.getElementById('inv-modal-title').textContent = 'Neue Rechnung';
+  document.getElementById('inv-desc').value = '';
+  document.getElementById('inv-amount').value = '';
+  document.getElementById('inv-status').value = 'Offen';
+  // default due date 30 days
+  const due = new Date(); due.setDate(due.getDate() + 30);
+  document.getElementById('inv-due').value = due.toISOString().split('T')[0];
+  document.getElementById('inv-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('invoice-overlay').classList.add('open');
+}
+
+function saveInvoice() {
+  const kundeId = document.getElementById('inv-kunde').value;
+  const desc = document.getElementById('inv-desc').value.trim();
+  const amount = document.getElementById('inv-amount').value;
+  if (!kundeId || !desc || !amount) { toast('Alle Pflichtfelder ausfüllen'); return; }
+
+  invoices.push({
+    id: uid(), num: nextInvNum(), created: now(),
+    kundeId, desc, amount,
+    status: document.getElementById('inv-status').value,
+    due: document.getElementById('inv-due').value,
+    date: document.getElementById('inv-date').value,
+  });
+  DB.set('invoices', invoices);
+  closeModal('invoice-overlay');
+  renderInvoices();
+  toast('Rechnung erstellt', 'success');
+}
+
+function changeInvStatus(id, status) {
+  const inv = invoices.find(i => i.id === id);
+  inv.status = status;
+  DB.set('invoices', invoices);
+  renderInvoices();
+}
+
+function deleteInvoice(id) {
+  if (!confirm('Rechnung löschen?')) return;
+  invoices = invoices.filter(i => i.id !== id);
+  DB.set('invoices', invoices);
+  renderInvoices();
+  toast('Gelöscht');
+}
+
+// helper for button in detail modal
+function showPage2(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('.nav-btn')[name === 'rechnungen' ? 2 : 1].classList.add('active');
+  renderInvoices();
+}
+
+// ── Init ──
+updateCounts();
+renderDashboard();
+</script>
+</body>
+</html>
