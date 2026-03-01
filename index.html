@@ -365,9 +365,9 @@
         <button class="nav-btn active" onclick="showPage('dashboard')">
           <span class="icon">◈</span> Dashboard
         </button>
-        <button class="nav-btn" onclick="showPage('kunden')">
-          <span class="icon">◉</span> Kunden
-          <span class="nav-count" id="nav-kunden-count">0</span>
+        <button class="nav-btn" onclick="showPage('kontakte')">
+          <span class="icon">◉</span> Kontakte
+          <span class="nav-count" id="nav-kontakte-count">0</span>
         </button>
         <button class="nav-btn" onclick="showPage('rechnungen')">
           <span class="icon">◎</span> Rechnungen
@@ -392,28 +392,28 @@
         <div id="recent-customers"></div>
       </div>
 
-      <!-- Kunden -->
-      <div id="page-kunden" class="page">
+      <!-- Kontakte -->
+      <div id="page-kontakte" class="page">
         <div class="page-header">
           <div>
-            <div class="page-title">Kunden</div>
-            <div class="page-sub" id="kunden-count-label">0 Einträge</div>
+            <div class="page-title">Kontakte</div>
+            <div class="page-sub" id="kontakte-count-label">0 Einträge</div>
           </div>
-          <button class="btn btn-primary" onclick="openKundeModal()">+ Neuer Kunde</button>
+          <button class="btn btn-primary" onclick="openKontaktModal()">+ Neuer Kontakt</button>
         </div>
         <div class="toolbar">
           <div class="search-wrap">
             <span class="search-icon">⌕</span>
-            <input type="text" id="search-input" placeholder="Suchen nach Name, E-Mail, Firma…" oninput="renderKunden()">
+            <input type="text" id="search-input" placeholder="Suchen nach Name, E-Mail, Firma…" oninput="renderKontakte()">
           </div>
-          <select class="filter" id="filter-status" onchange="renderKunden()">
+          <select class="filter" id="filter-status" onchange="renderKontakte()">
             <option value="">Alle Status</option>
             <option value="Aktiv">Aktiv</option>
             <option value="Inaktiv">Inaktiv</option>
             <option value="Lead">Lead</option>
             <option value="VIP">VIP</option>
           </select>
-          <select class="filter" id="sort-by" onchange="renderKunden()">
+          <select class="filter" id="sort-by" onchange="renderKontakte()">
             <option value="name">Name A–Z</option>
             <option value="date">Neueste zuerst</option>
             <option value="firma">Firma</option>
@@ -431,12 +431,12 @@
                 <th>Aktionen</th>
               </tr>
             </thead>
-            <tbody id="kunden-tbody"></tbody>
+            <tbody id="kontakte-tbody"></tbody>
           </table>
         </div>
-        <div id="kunden-empty" class="empty" style="display:none">
+        <div id="kontakte-empty" class="empty" style="display:none">
           <div class="empty-icon">◌</div>
-          <p>Keine Kunden gefunden</p>
+          <p>Keine Kontakte gefunden</p>
         </div>
       </div>
 
@@ -466,7 +466,7 @@
             <thead>
               <tr>
                 <th>Nr.</th>
-                <th>Kunde</th>
+                <th>Kontakt</th>
                 <th>Beschreibung</th>
                 <th>Betrag</th>
                 <th>Fällig am</th>
@@ -487,10 +487,10 @@
   </div>
 </div>
 
-<!-- ── Kunde Modal ── -->
-<div class="overlay" id="kunde-overlay" onclick="closeIfOverlay(event,'kunde-overlay')">
+<!-- ── Kontakt Modal ── -->
+<div class="overlay" id="kontakt-overlay" onclick="closeIfOverlay(event,'kontakt-overlay')">
   <div class="modal">
-    <div class="modal-title" id="kunde-modal-title">Neuer Kunde</div>
+    <div class="modal-title" id="kontakt-modal-title">Neuer Kontakt</div>
     <div class="form-grid">
       <div class="form-group">
         <label>Vorname *</label>
@@ -549,8 +549,8 @@
       </div>
     </div>
     <div class="form-actions">
-      <button class="btn btn-ghost" onclick="closeModal('kunde-overlay')">Abbrechen</button>
-      <button class="btn btn-primary" onclick="saveKunde()">Speichern</button>
+      <button class="btn btn-ghost" onclick="closeModal('kontakt-overlay')">Abbrechen</button>
+      <button class="btn btn-primary" onclick="saveKontakt()">Speichern</button>
     </div>
   </div>
 </div>
@@ -566,8 +566,8 @@
     <div class="modal-title" id="inv-modal-title">Neue Rechnung</div>
     <div class="form-grid">
       <div class="form-group full">
-        <label>Kunde *</label>
-        <select id="inv-kunde"></select>
+        <label>Kontakt *</label>
+        <select id="inv-kontakt"></select>
       </div>
       <div class="form-group full">
         <label>Beschreibung *</label>
@@ -611,9 +611,9 @@ const DB = {
   set: (k, v) => localStorage.setItem(k, JSON.stringify(v)),
 };
 
-let kunden = DB.get('kunden');
+let kontakte = DB.get('kontakte');
 let invoices = DB.get('invoices');
-let editingKundeId = null;
+let editingKontaktId = null;
 let editingInvId = null;
 
 // ── Helpers ──
@@ -654,39 +654,39 @@ function showPage(name) {
   document.getElementById('page-' + name).classList.add('active');
   event.currentTarget.classList.add('active');
   if (name === 'dashboard') renderDashboard();
-  if (name === 'kunden') renderKunden();
+  if (name === 'kontakte') renderKontakte();
   if (name === 'rechnungen') renderInvoices();
 }
 
 // ── Update Header / Nav counts ──
 function updateCounts() {
-  document.getElementById('hdr-total').textContent = kunden.length;
-  document.getElementById('hdr-aktiv').textContent = kunden.filter(k => k.status === 'Aktiv' || k.status === 'VIP').length;
+  document.getElementById('hdr-total').textContent = kontakte.length;
+  document.getElementById('hdr-aktiv').textContent = kontakte.filter(k => k.status === 'Aktiv' || k.status === 'VIP').length;
   const open = invoices.filter(i => i.status === 'Offen' || i.status === 'Überfällig').reduce((s, i) => s + Number(i.amount), 0);
   document.getElementById('hdr-revenue').textContent = open.toLocaleString('de-DE');
-  document.getElementById('nav-kunden-count').textContent = kunden.length;
+  document.getElementById('nav-kontakte-count').textContent = kontakte.length;
   document.getElementById('nav-inv-count').textContent = invoices.length;
 }
 
 // ── Dashboard ──
 function renderDashboard() {
-  const aktiv = kunden.filter(k => k.status === 'Aktiv').length;
-  const vip = kunden.filter(k => k.status === 'VIP').length;
+  const aktiv = kontakte.filter(k => k.status === 'Aktiv').length;
+  const vip = kontakte.filter(k => k.status === 'VIP').length;
   const offen = invoices.filter(i => i.status === 'Offen').reduce((s, i) => s + Number(i.amount), 0);
   const bezahlt = invoices.filter(i => i.status === 'Bezahlt').reduce((s, i) => s + Number(i.amount), 0);
 
   document.getElementById('dashboard-cards').innerHTML = `
-    <div class="card"><div class="card-num">${kunden.length}</div><div class="card-label">Kunden gesamt</div></div>
-    <div class="card"><div class="card-num">${aktiv}</div><div class="card-label">Aktive Kunden</div></div>
-    <div class="card"><div class="card-num">${vip}</div><div class="card-label">VIP Kunden</div></div>
+    <div class="card"><div class="card-num">${kontakte.length}</div><div class="card-label">Kontakte gesamt</div></div>
+    <div class="card"><div class="card-num">${aktiv}</div><div class="card-label">Aktive Kontakte</div></div>
+    <div class="card"><div class="card-num">${vip}</div><div class="card-label">VIP Kontakte</div></div>
     <div class="card"><div class="card-num">${invoices.length}</div><div class="card-label">Rechnungen</div></div>
     <div class="card"><div class="card-num">${offen.toLocaleString('de-DE')} €</div><div class="card-label">Offen</div></div>
     <div class="card"><div class="card-num">${bezahlt.toLocaleString('de-DE')} €</div><div class="card-label">Bezahlt</div></div>
   `;
 
-  const recent = [...kunden].sort((a, b) => b.created.localeCompare(a.created)).slice(0, 5);
+  const recent = [...kontakte].sort((a, b) => b.created.localeCompare(a.created)).slice(0, 5);
   if (!recent.length) {
-    document.getElementById('recent-customers').innerHTML = '<div class="empty"><div class="empty-icon">◌</div><p>Noch keine Kunden angelegt</p></div>';
+    document.getElementById('recent-customers').innerHTML = '<div class="empty"><div class="empty-icon">◌</div><p>Noch keine Kontakte angelegt</p></div>';
     return;
   }
   document.getElementById('recent-customers').innerHTML = `
@@ -701,13 +701,13 @@ function renderDashboard() {
     </tbody></table>`;
 }
 
-// ── Kunden ──
-function renderKunden() {
+// ── Kontakte ──
+function renderKontakte() {
   const q = document.getElementById('search-input').value.toLowerCase();
   const status = document.getElementById('filter-status').value;
   const sort = document.getElementById('sort-by').value;
 
-  let list = kunden.filter(k => {
+  let list = kontakte.filter(k => {
     const match = `${k.vorname} ${k.nachname} ${k.email} ${k.firma}`.toLowerCase().includes(q);
     const st = !status || k.status === status;
     return match && st;
@@ -717,9 +717,9 @@ function renderKunden() {
   else if (sort === 'date') list.sort((a, b) => b.created.localeCompare(a.created));
   else if (sort === 'firma') list.sort((a, b) => (a.firma || '').localeCompare(b.firma || ''));
 
-  document.getElementById('kunden-count-label').textContent = `${list.length} Einträge`;
+  document.getElementById('kontakte-count-label').textContent = `${list.length} Einträge`;
 
-  const tbody = document.getElementById('kunden-tbody');
+  const tbody = document.getElementById('kontakte-tbody');
   tbody.innerHTML = list.map(k => `
     <tr onclick="openDetail('${k.id}')">
       <td><strong>${k.vorname} ${k.nachname}</strong></td>
@@ -729,22 +729,22 @@ function renderKunden() {
       <td>${statusBadge(k.status)}</td>
       <td onclick="event.stopPropagation()">
         <div class="actions">
-          <button class="btn btn-ghost btn-sm" onclick="openKundeModal('${k.id}')">Bearbeiten</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteKunde('${k.id}')">Löschen</button>
+          <button class="btn btn-ghost btn-sm" onclick="openKontaktModal('${k.id}')">Bearbeiten</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteKontakt('${k.id}')">Löschen</button>
         </div>
       </td>
     </tr>`).join('');
 
-  document.getElementById('kunden-empty').style.display = list.length ? 'none' : 'block';
-  document.getElementById('kunden-tbody').style.display = list.length ? '' : 'none';
+  document.getElementById('kontakte-empty').style.display = list.length ? 'none' : 'block';
+  document.getElementById('kontakte-tbody').style.display = list.length ? '' : 'none';
   updateCounts();
 }
 
-function openKundeModal(id = null) {
-  editingKundeId = id;
-  document.getElementById('kunde-modal-title').textContent = id ? 'Kunde bearbeiten' : 'Neuer Kunde';
+function openKontaktModal(id = null) {
+  editingKontaktId = id;
+  document.getElementById('kontakt-modal-title').textContent = id ? 'Kontakt bearbeiten' : 'Neuer Kontakt';
   if (id) {
-    const k = kunden.find(x => x.id === id);
+    const k = kontakte.find(x => x.id === id);
     document.getElementById('k-vorname').value = k.vorname;
     document.getElementById('k-nachname').value = k.nachname;
     document.getElementById('k-firma').value = k.firma || '';
@@ -757,16 +757,16 @@ function openKundeModal(id = null) {
     ['k-vorname','k-nachname','k-firma','k-email','k-tel','k-adresse','k-notiz'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('k-status').value = 'Aktiv';
   }
-  document.getElementById('kunde-overlay').classList.add('open');
+  document.getElementById('kontakt-overlay').classList.add('open');
 }
 
-function saveKunde() {
+function saveKontakt() {
   const vorname = document.getElementById('k-vorname').value.trim();
   const nachname = document.getElementById('k-nachname').value.trim();
   if (!vorname || !nachname) { toast('Vorname und Nachname sind Pflichtfelder'); return; }
 
-  if (editingKundeId) {
-    const k = kunden.find(x => x.id === editingKundeId);
+  if (editingKontaktId) {
+    const k = kontakte.find(x => x.id === editingKontaktId);
     Object.assign(k, {
       vorname, nachname,
       firma: document.getElementById('k-firma').value.trim(),
@@ -780,7 +780,7 @@ function saveKunde() {
     toast('Gespeichert', 'success');
   } else {
     const n = document.getElementById('k-notiz').value.trim();
-    kunden.push({
+    kontakte.push({
       id: uid(), created: now(), vorname, nachname,
       firma: document.getElementById('k-firma').value.trim(),
       status: document.getElementById('k-status').value,
@@ -789,25 +789,25 @@ function saveKunde() {
       adresse: document.getElementById('k-adresse').value.trim(),
       notes: n ? [{ text: n, date: now() }] : [],
     });
-    toast('Kunde angelegt', 'success');
+    toast('Kontakt angelegt', 'success');
   }
-  DB.set('kunden', kunden);
-  closeModal('kunde-overlay');
-  renderKunden();
+  DB.set('kontakte', kontakte);
+  closeModal('kontakt-overlay');
+  renderKontakte();
 }
 
-function deleteKunde(id) {
-  if (!confirm('Kunden wirklich löschen?')) return;
-  kunden = kunden.filter(k => k.id !== id);
-  DB.set('kunden', kunden);
-  renderKunden();
+function deleteKontakt(id) {
+  if (!confirm('Kontakte wirklich löschen?')) return;
+  kontakte = kontakte.filter(k => k.id !== id);
+  DB.set('kontakte', kontakte);
+  renderKontakte();
   toast('Gelöscht');
 }
 
 // ── Detail ──
 function openDetail(id) {
-  const k = kunden.find(x => x.id === id);
-  const kundeInv = invoices.filter(i => i.kundeId === id);
+  const k = kontakte.find(x => x.id === id);
+  const kontaktInv = invoices.filter(i => i.kontaktId === id);
 
   const notesHtml = (k.notes || []).length
     ? (k.notes || []).map(n => `
@@ -817,8 +817,8 @@ function openDetail(id) {
         </div>`).join('')
     : '<div style="color:var(--text-muted);font-size:0.85rem">Noch keine Notizen</div>';
 
-  const invHtml = kundeInv.length
-    ? kundeInv.map(i => `
+  const invHtml = kontaktInv.length
+    ? kontaktInv.map(i => `
         <div class="invoice-item">
           <div>
             <div class="invoice-num">#${i.num}</div>
@@ -863,15 +863,15 @@ function openDetail(id) {
   document.getElementById('detail-overlay').classList.add('open');
 }
 
-function addNote(kundeId) {
-  const inp = document.getElementById(`note-input-${kundeId}`);
+function addNote(kontaktId) {
+  const inp = document.getElementById(`note-input-${kontaktId}`);
   const text = inp.value.trim();
   if (!text) return;
-  const k = kunden.find(x => x.id === kundeId);
+  const k = kontakte.find(x => x.id === kontaktId);
   k.notes = [...(k.notes || []), { text, date: now() }];
-  DB.set('kunden', kunden);
+  DB.set('kontakte', kontakte);
   inp.value = '';
-  openDetail(kundeId);
+  openDetail(kontaktId);
   toast('Notiz gespeichert', 'success');
 }
 
@@ -889,7 +889,7 @@ function renderInvoices() {
   const status = document.getElementById('inv-filter').value;
 
   let list = invoices.filter(i => {
-    const k = kunden.find(x => x.id === i.kundeId);
+    const k = kontakte.find(x => x.id === i.kontaktId);
     const name = k ? `${k.vorname} ${k.nachname}` : '';
     const match = `${name} ${i.desc} ${i.num}`.toLowerCase().includes(q);
     const st = !status || i.status === status;
@@ -901,7 +901,7 @@ function renderInvoices() {
 
   const tbody = document.getElementById('invoices-tbody');
   tbody.innerHTML = list.map(i => {
-    const k = kunden.find(x => x.id === i.kundeId);
+    const k = kontakte.find(x => x.id === i.kontaktId);
     const name = k ? `${k.vorname} ${k.nachname}` : 'Unbekannt';
     return `<tr>
       <td style="font-family:'DM Mono',monospace;font-size:0.8rem">#${i.num}</td>
@@ -928,12 +928,12 @@ function renderInvoices() {
   updateCounts();
 }
 
-function openInvoiceModal(preKundeId = null) {
+function openInvoiceModal(preKontaktId = null) {
   editingInvId = null;
-  // fill Kunden select
-  const sel = document.getElementById('inv-kunde');
-  sel.innerHTML = kunden.map(k => `<option value="${k.id}" ${k.id===preKundeId?'selected':''}>${k.vorname} ${k.nachname}${k.firma?' – '+k.firma:''}</option>`).join('');
-  if (!kunden.length) { toast('Bitte zuerst einen Kunden anlegen'); return; }
+  // fill Kontakte select
+  const sel = document.getElementById('inv-kontakt');
+  sel.innerHTML = kontakte.map(k => `<option value="${k.id}" ${k.id===preKontaktId?'selected':''}>${k.vorname} ${k.nachname}${k.firma?' – '+k.firma:''}</option>`).join('');
+  if (!kontakte.length) { toast('Bitte zuerst einen Kontakte anlegen'); return; }
   document.getElementById('inv-modal-title').textContent = 'Neue Rechnung';
   document.getElementById('inv-desc').value = '';
   document.getElementById('inv-amount').value = '';
@@ -946,14 +946,14 @@ function openInvoiceModal(preKundeId = null) {
 }
 
 function saveInvoice() {
-  const kundeId = document.getElementById('inv-kunde').value;
+  const kontaktId = document.getElementById('inv-kontakt').value;
   const desc = document.getElementById('inv-desc').value.trim();
   const amount = document.getElementById('inv-amount').value;
-  if (!kundeId || !desc || !amount) { toast('Alle Pflichtfelder ausfüllen'); return; }
+  if (!kontaktId || !desc || !amount) { toast('Alle Pflichtfelder ausfüllen'); return; }
 
   invoices.push({
     id: uid(), num: nextInvNum(), created: now(),
-    kundeId, desc, amount,
+    kontaktId, desc, amount,
     status: document.getElementById('inv-status').value,
     due: document.getElementById('inv-due').value,
     date: document.getElementById('inv-date').value,
